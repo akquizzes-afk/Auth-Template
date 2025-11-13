@@ -45,7 +45,7 @@ jobs:
 
     # 6. Install Capacitor tools
     - name: Install Capacitor
-      run: npm install @capacitor/core @capacitor/cli @capacitor/android
+      run: npm install @capacitor/core@5 @capacitor/cli@5 @capacitor/android@5
 
     # 7. Create the Capacitor config file
     # This replaces the interactive 'npx cap init'
