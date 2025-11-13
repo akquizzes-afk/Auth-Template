@@ -1,78 +1,81 @@
-name: Build Android APK From Web Files
+name: Build Android APK (Custom Icon)
 
-# Run on every push to the 'main' branch
 on:
   push:
     branches: [ "main" ]
 
 jobs:
   build-android:
-    # Use the latest Ubuntu (Linux) runner
     runs-on: ubuntu-latest
 
     steps:
-    # 1. Checks out your repository's code
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # 2. Sets up Java 17 (CRITICAL FIX)
-    # Capacitor 5 requires Java 17. Java 21 causes the "major version 65" crash.
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
 
-    # 3. Sets up the Node.js environment
     - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '18'
 
-    # 4. Create 'www' dir and move your web files into it
-    # We use 'mkdir -p' to ensure no errors if folder exists
+    # Organize files (including your logo!)
     - name: Organize Web Files
       run: |
         mkdir -p www
         mv index.html www/
         mv css www/
         mv js www/
-        # Verify the move
-        echo "Files in www folder:"
-        ls -l www
+        # We don't move logo.png to www. It stays in root for the asset generator.
 
-    # 5. Create a package.json file
     - name: Create package.json
       run: npm init -y
 
-    # 6. Install Capacitor 5 (CRITICAL FIX)
-    # Version 5 is stable and works with standard Android SDKs
-    - name: Install Capacitor
-      run: npm install @capacitor/core@5 @capacitor/cli@5 @capacitor/android@5
+    # Install Capacitor AND the Asset Generator tool
+    - name: Install Dependencies
+      run: |
+        npm install @capacitor/core@5 @capacitor/cli@5 @capacitor/android@5
+        npm install @capacitor/assets --save-dev
 
-    # 7. Create the Capacitor config file
     - name: Create Capacitor Config
       run: |
         echo '{
-          "appId": "com.practice.authapp",
-          "appName": "Auth Template App",
+          "appId": "com.mystore.app",
+          "appName": "My Awesome Store",
           "webDir": "www",
           "bundledWebRuntime": false
         }' > capacitor.config.json
 
-    # 8. Add the native Android platform
     - name: Add Android Platform
       run: npx cap add android
 
-    # 9. Build the Debug APK
-    # We add 'chmod +x' to ensure the build script is executable
+    # --- NEW STEP: GENERATE ICONS ---
+    - name: Generate App Icons
+      run: |
+        # 1. Create the assets folder structure Capacitor expects
+        mkdir -p assets
+        
+        # 2. Copy your logo.png to be the source for icon and splash screen
+        # (We use the same image for both to keep it simple)
+        cp logo.png assets/icon.png
+        cp logo.png assets/splash.png
+        
+        # 3. Run the generator tool
+        npx capacitor-assets generate --android
+        
+        # 4. Sync these new assets into the Android project
+        npx cap sync android
+
     - name: Build Debug APK
       run: |
         cd android
         chmod +x gradlew
         ./gradlew assembleDebug
 
-    # 10. Upload the built APK as a downloadable file
     - name: Upload APK as Artifact
       uses: actions/upload-artifact@v4
       with:
