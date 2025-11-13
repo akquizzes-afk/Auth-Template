@@ -1,0 +1,75 @@
+name: Build Android APK From Web Files
+
+# Run on every push to the 'main' branch
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-android:
+    # Use the latest Ubuntu (Linux) runner
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Checks out your repository's code
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    # 2. Sets up the Java environment (required for Android)
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    # 3. Sets up the Node.js environment
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    # 4. Create 'www' dir and move your web files into it
+    - name: Organize Web Files
+      run: |
+        mkdir www
+        mv index.html www/
+        mv css www/
+        mv js www/
+        # Add any other files/folders here, like 'images'
+        echo "Web files moved to www/"
+        ls -l www
+
+    # 5. Create a package.json file
+    - name: Create package.json
+      run: npm init -y
+
+    # 6. Install Capacitor tools
+    - name: Install Capacitor
+      run: npm install @capacitor/core @capacitor/cli @capacitor/android
+
+    # 7. Create the Capacitor config file
+    # This replaces the interactive 'npx cap init'
+    - name: Create Capacitor Config
+      run: |
+        echo '{
+          "appId": "com.practice.authapp",
+          "appName": "Auth Template App",
+          "webDir": "www",
+          "bundledWebRuntime": false
+        }' > capacitor.config.json
+
+    # 8. Add the native Android platform
+    - name: Add Android Platform
+      run: npx cap add android
+
+    # 9. Build the Debug APK
+    - name: Build Debug APK
+      run: cd android && ./gradlew assembleDebug
+
+    # 10. Upload the built APK as a downloadable file
+    - name: Upload APK as Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-debug.apk
+        path: android/app/build/outputs/apk/debug/app-debug.apk
