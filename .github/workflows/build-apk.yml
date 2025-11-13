@@ -15,11 +15,12 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # 2. Sets up the Java environment (required for Android)
-    - name: Set up JDK 21
+    # 2. Sets up Java 17 (CRITICAL FIX)
+    # Capacitor 5 requires Java 17. Java 21 causes the "major version 65" crash.
+    - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
-        java-version: '21'
+        java-version: '17'
         distribution: 'temurin'
 
     # 3. Sets up the Node.js environment
@@ -29,26 +30,27 @@ jobs:
         node-version: '18'
 
     # 4. Create 'www' dir and move your web files into it
+    # We use 'mkdir -p' to ensure no errors if folder exists
     - name: Organize Web Files
       run: |
-        mkdir www
+        mkdir -p www
         mv index.html www/
         mv css www/
         mv js www/
-        # Add any other files/folders here, like 'images'
-        echo "Web files moved to www/"
+        # Verify the move
+        echo "Files in www folder:"
         ls -l www
 
     # 5. Create a package.json file
     - name: Create package.json
       run: npm init -y
 
-    # 6. Install Capacitor tools
+    # 6. Install Capacitor 5 (CRITICAL FIX)
+    # Version 5 is stable and works with standard Android SDKs
     - name: Install Capacitor
       run: npm install @capacitor/core@5 @capacitor/cli@5 @capacitor/android@5
 
     # 7. Create the Capacitor config file
-    # This replaces the interactive 'npx cap init'
     - name: Create Capacitor Config
       run: |
         echo '{
@@ -63,8 +65,12 @@ jobs:
       run: npx cap add android
 
     # 9. Build the Debug APK
+    # We add 'chmod +x' to ensure the build script is executable
     - name: Build Debug APK
-      run: cd android && ./gradlew assembleDebug
+      run: |
+        cd android
+        chmod +x gradlew
+        ./gradlew assembleDebug
 
     # 10. Upload the built APK as a downloadable file
     - name: Upload APK as Artifact
