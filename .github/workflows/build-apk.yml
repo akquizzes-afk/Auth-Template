@@ -27,7 +27,6 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '18'
-        cache: 'npm'
 
     # 4. Create 'www' dir and move your web files into it
     - name: Organize Web Files
